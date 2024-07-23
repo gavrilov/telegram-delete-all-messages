@@ -1,36 +1,11 @@
 import os
 import json
-# import asyncio
 
 from time import sleep
 
-from pyrogram import Client
-from pyrogram.raw.functions.messages import Search
-from pyrogram.raw.types import InputPeerSelf, InputMessagesFilterEmpty
-from pyrogram.raw.types.messages import ChannelMessages
-from pyrogram.errors import FloodWait, UnknownError
-
-cachePath = os.path.abspath(__file__)
-cachePath = os.path.dirname(cachePath)
-cachePath = os.path.join(cachePath, "cache")
-
-if os.path.exists(cachePath):
-    with open(cachePath, "r") as cacheFile:
-        cache = json.loads(cacheFile.read())
-    
-    API_ID = cache["API_ID"]
-    API_HASH = cache["API_HASH"]
-else:
-    API_ID = os.getenv('API_ID', None) or int(input('Enter your Telegram API id: '))
-    API_HASH = os.getenv('API_HASH', None) or input('Enter your Telegram API hash: ')
-
-app = Client("client", api_id=API_ID, api_hash=API_HASH)
-
-if not os.path.exists(cachePath):
-    with open(cachePath, "w") as cacheFile:
-        cache = {"API_ID": API_ID, "API_HASH": API_HASH}
-        cacheFile.write(json.dumps(cache))
-
+from pyrogram.client import Client
+from pyrogram.errors import FloodWait
+from pyrogram.errors.rpc_error import UnknownError
 
 class Cleaner:
     def __init__(self, chats=None, search_chunk_size=100, delete_chunk_size=100):
@@ -120,8 +95,8 @@ class Cleaner:
         print(message_ids)
         for chunk in self.chunks(message_ids, self.delete_chunk_size):
             try:
-                async with app:
-                    await app.delete_messages(chat_id=chat_id, message_ids=chunk)
+                # async with app:
+                await app.delete_messages(chat_id=chat_id, message_ids=chunk)
             except FloodWait as flood_exception:
                 sleep(flood_exception.x)
 
@@ -134,45 +109,37 @@ class Cleaner:
                 messages.append(message)
             return messages
 
-async def delete_reactions(chat_id):
-    async with app:
-        me = await app.get_me()
-        print(f'me.id: {me.id}')
-        async for message in app.get_chat_history(chat_id):
-            # print(f'checking message id: {message.message_id}')
-            if message.reactions:
-                print(f'{message.id} has reactions')
-                if message.from_user.id == me.id:
-                    print(f'deleting {message.reactions} on message.message_id')
-                    # Delete the original message
-                    await app.delete_messages(chat_id, message.message_id)
-
-                    # Resend the message without reactions
-                    await app.send_message(chat_id, message.text)
-            # await asyncio.sleep(1)
-
-async def list_chats():
-    async with app:
-        dialogs = []
-        async for dialog in app.get_dialogs():
-            # chat = dialog.chat
-            dialogs.append(dialog.chat)
-            # print(f"Chat ID: {chat.id}, Title: {chat.title or chat.first_name or chat.username}")
-        groups = [c for c in dialogs if c.type.name in ('GROUP, SUPERGROUP')]
-        for g in groups:
-            print(f' {g.id} - {g.title}')
-
 async def main():
     try:
-        # app.run(await list_chats())
-        # asyncio.run(await delete_reactions("-656476951"))
-        # asyncio.get_event_loop().run_until_complete(await delete_reactions("-656476951"))
         deleter = Cleaner()
         await deleter.select_groups()
         await deleter.run()
     except UnknownError as e:
         print(f'UnknownError occured: {e}')
         print('Probably API has changed, ask developers to update this utility')
+    finally:
+        app.stop()
 
-# asyncio.run(delete_reactions("-656476951"))
-app.run(main())
+if __name__ == '__main__':
+    cachePath = os.path.abspath(__file__)
+    cachePath = os.path.dirname(cachePath)
+    cachePath = os.path.join(cachePath, "cache")
+
+    if os.path.exists(cachePath):
+        with open(cachePath, "r") as cacheFile:
+            cache = json.loads(cacheFile.read())
+        
+        API_ID = cache["API_ID"]
+        API_HASH = cache["API_HASH"]
+    else:
+        API_ID = os.getenv('API_ID', None) or int(input('Enter your Telegram API id: '))
+        API_HASH = os.getenv('API_HASH', None) or input('Enter your Telegram API hash: ')
+
+    app = Client("client", api_id=API_ID, api_hash=API_HASH)
+
+    if not os.path.exists(cachePath):
+        with open(cachePath, "w") as cacheFile:
+            cache = {"API_ID": API_ID, "API_HASH": API_HASH}
+            cacheFile.write(json.dumps(cache))
+
+    app.run(main())
