@@ -28,12 +28,11 @@ class Cleaner:
             yield l[i:i + n]
 
     @staticmethod
-    async def get_all_chats():        
-        async with app:
-            dialogs = []
-            async for dialog in app.get_dialogs():
-                dialogs.append(dialog.chat)
-            return dialogs
+    async def get_all_chats():
+        dialogs = []
+        async for dialog in app.get_dialogs():
+            dialogs.append(dialog.chat)
+        return dialogs
 
     async def select_groups(self, recursive=0):
         chats = await self.get_all_chats()
@@ -102,23 +101,21 @@ class Cleaner:
 
 
     async def search_messages(self, chat_id, add_offset):
-        async with app:
-            messages = []
-            print(f'Searching messages. OFFSET: {add_offset}')
-            async for message in app.search_messages(chat_id=chat_id, offset=add_offset, from_user="me", limit=100):
-                messages.append(message)
-            return messages
+        messages = []
+        print(f'Searching messages. OFFSET: {add_offset}')
+        async for message in app.search_messages(chat_id=chat_id, offset=add_offset, from_user="me", limit=100):
+            messages.append(message)
+        return messages
 
 async def main():
     try:
-        deleter = Cleaner()
-        await deleter.select_groups()
-        await deleter.run()
+        async with app:  # Keep the connection here
+            deleter = Cleaner()
+            await deleter.select_groups()
+            await deleter.run()
     except UnknownError as e:
-        print(f'UnknownError occured: {e}')
+        print(f'UnknownError occurred: {e}')
         print('Probably API has changed, ask developers to update this utility')
-    finally:
-        app.stop()
 
 if __name__ == '__main__':
     cachePath = os.path.abspath(__file__)
@@ -141,5 +138,4 @@ if __name__ == '__main__':
         with open(cachePath, "w") as cacheFile:
             cache = {"API_ID": API_ID, "API_HASH": API_HASH}
             cacheFile.write(json.dumps(cache))
-
     app.run(main())
