@@ -4,3 +4,4 @@
 cache
 client.session
 client.session-journal
+*.session

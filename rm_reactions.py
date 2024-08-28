@@ -10,9 +10,11 @@ from pyrogram.client import Client
 API_ID = os.getenv('API_ID', None) or int(input('Enter your Telegram API id: '))
 API_HASH = os.getenv('API_HASH', None) or input('Enter your Telegram API hash: ')
 
-session_name='rm_reactions'
-client = TelegramClient(session_name, API_ID, API_HASH)
-app = Client(session_name, api_id=API_ID, api_hash=API_HASH)
+# telethon and pyrogram have different session file formats - because of this the script created 2 sessions and you had to log in twice
+session_name_pyrogram ='rm_reactions_pyrogram'
+session_name_telethon = 'rm_reactions_telethon'
+client = TelegramClient(session_name_telethon, API_ID, API_HASH)
+app = Client(session_name_pyrogram, api_id=API_ID, api_hash=API_HASH)
 
 async def rm_reaction(app, chat_id, msg_id):
     try:
